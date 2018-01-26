@@ -34,6 +34,7 @@ struct TranslatorVisitor final {
     bool UnpredictableInstruction();
     bool ReservedValue();
     bool UnallocatedEncoding();
+    bool RaiseException(Exception exception);
 
     struct BitMasks {
         u64 wmask, tmask;

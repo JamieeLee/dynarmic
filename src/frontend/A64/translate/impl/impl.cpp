@@ -16,19 +16,19 @@ bool TranslatorVisitor::InterpretThisInstruction() {
 }
 
 bool TranslatorVisitor::UnpredictableInstruction() {
-    ir.ExceptionRaised(Exception::UnpredictableInstruction);
-    ir.SetTerm(IR::Term::CheckHalt{IR::Term::ReturnToDispatch{}});
-    return false;
+    return RaiseException(Exception::UnpredictableInstruction);
 }
 
 bool TranslatorVisitor::ReservedValue() {
-    ir.ExceptionRaised(Exception::ReservedValue);
-    ir.SetTerm(IR::Term::CheckHalt{IR::Term::ReturnToDispatch{}});
-    return false;
+    return RaiseException(Exception::ReservedValue);
 }
 
 bool TranslatorVisitor::UnallocatedEncoding() {
-    ir.ExceptionRaised(Exception::UnallocatedEncoding);
+    return RaiseException(Exception::UnallocatedEncoding);
+}
+
+bool TranslatorVisitor::RaiseException(Exception exception) {
+    ir.ExceptionRaised(exception);
     ir.SetTerm(IR::Term::CheckHalt{IR::Term::ReturnToDispatch{}});
     return false;
 }
