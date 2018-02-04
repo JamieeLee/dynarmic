@@ -179,13 +179,13 @@ void BlockOfCode::GenRunCode() {
 }
 
 void BlockOfCode::SwitchMxcsrOnEntry() {
-    stmxcsr(dword[r15 + jsi.offsetof_save_host_MXCSR]);
-    ldmxcsr(dword[r15 + jsi.offsetof_guest_MXCSR]);
+    //stmxcsr(dword[r15 + jsi.offsetof_save_host_MXCSR]);
+    //ldmxcsr(dword[r15 + jsi.offsetof_guest_MXCSR]);
 }
 
 void BlockOfCode::SwitchMxcsrOnExit() {
-    stmxcsr(dword[r15 + jsi.offsetof_guest_MXCSR]);
-    ldmxcsr(dword[r15 + jsi.offsetof_save_host_MXCSR]);
+    //stmxcsr(dword[r15 + jsi.offsetof_guest_MXCSR]);
+    //ldmxcsr(dword[r15 + jsi.offsetof_save_host_MXCSR]);
 }
 
 Xbyak::Address BlockOfCode::MConst(u64 constant) {

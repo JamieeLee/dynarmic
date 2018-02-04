@@ -45,11 +45,11 @@ bool A64EmitContext::FPSCR_RoundTowardsZero() const {
 }
 
 bool A64EmitContext::FPSCR_FTZ() const {
-    return Location().FPCR().FZ();
+    return false;//Location().FPCR().FZ();
 }
 
 bool A64EmitContext::FPSCR_DN() const {
-    return Location().FPCR().DN();
+    return false;//Location().FPCR().DN();
 }
 
 A64EmitX64::A64EmitX64(BlockOfCode& code, A64::UserConfig conf)
@@ -310,7 +310,26 @@ void A64EmitX64::EmitA64ExceptionRaised(A64EmitContext& ctx, IR::Inst* inst) {
     });
 }
 
+constexpr int PAGE_BITS = 12;
+constexpr u64 PAGE_SIZE = 1 << PAGE_BITS;
+
 void A64EmitX64::EmitA64ReadMemory8(A64EmitContext& ctx, IR::Inst* inst) {
+    if (conf.page_table) {
+        auto args = ctx.reg_alloc.GetArgumentInfo(inst);
+        Xbyak::Reg64 addr = ctx.reg_alloc.UseScratchGpr(args[0]);
+        Xbyak::Reg64 tmp = ctx.reg_alloc.ScratchGpr();
+        Xbyak::Reg64 page_table = ctx.reg_alloc.ScratchGpr();
+        code.mov(page_table, reinterpret_cast<u64>(conf.page_table));
+        code.mov(tmp, addr);
+        code.and_(addr, PAGE_SIZE - 1);
+        code.shr(tmp, PAGE_BITS);
+        code.mov(page_table, qword[page_table + tmp * sizeof(void*)]);
+        code.xor_(tmp.cvt32(), tmp.cvt32());
+        code.mov(tmp.cvt8(), code.byte[page_table + addr]);
+        ctx.reg_alloc.DefineValue(inst, tmp);
+        return;
+    }
+
     DEVIRT(conf.callbacks, &A64::UserCallbacks::MemoryRead8).EmitCall(code, [&](Xbyak::Reg64 vaddr) {
         ASSERT(vaddr == code.ABI_PARAM2);
         auto args = ctx.reg_alloc.GetArgumentInfo(inst);
@@ -319,6 +338,22 @@ void A64EmitX64::EmitA64ReadMemory8(A64EmitContext& ctx, IR::Inst* inst) {
 }
 
 void A64EmitX64::EmitA64ReadMemory16(A64EmitContext& ctx, IR::Inst* inst) {
+    if (conf.page_table) {
+        auto args = ctx.reg_alloc.GetArgumentInfo(inst);
+        Xbyak::Reg64 addr = ctx.reg_alloc.UseScratchGpr(args[0]);
+        Xbyak::Reg64 tmp = ctx.reg_alloc.ScratchGpr();
+        Xbyak::Reg64 page_table = ctx.reg_alloc.ScratchGpr();
+        code.mov(page_table, reinterpret_cast<u64>(conf.page_table));
+        code.mov(tmp, addr);
+        code.and_(addr, PAGE_SIZE - 1);
+        code.shr(tmp, PAGE_BITS);
+        code.mov(page_table, qword[page_table + tmp * sizeof(void*)]);
+        code.xor_(tmp.cvt32(), tmp.cvt32());
+        code.mov(tmp.cvt16(), code.word[page_table + addr]);
+        ctx.reg_alloc.DefineValue(inst, tmp);
+        return;
+    }
+
     DEVIRT(conf.callbacks, &A64::UserCallbacks::MemoryRead16).EmitCall(code, [&](Xbyak::Reg64 vaddr) {
         ASSERT(vaddr == code.ABI_PARAM2);
         auto args = ctx.reg_alloc.GetArgumentInfo(inst);
@@ -327,6 +362,23 @@ void A64EmitX64::EmitA64ReadMemory16(A64EmitContext& ctx, IR::Inst* inst) {
 }
 
 void A64EmitX64::EmitA64ReadMemory32(A64EmitContext& ctx, IR::Inst* inst) {
+    if (conf.page_table) {
+        auto args = ctx.reg_alloc.GetArgumentInfo(inst);
+        Xbyak::Reg64 addr = ctx.reg_alloc.UseScratchGpr(args[0]);
+        Xbyak::Reg64 tmp = ctx.reg_alloc.ScratchGpr();
+        Xbyak::Reg64 page_table = ctx.reg_alloc.ScratchGpr();
+        code.mov(page_table, reinterpret_cast<u64>(conf.page_table));
+        code.mov(tmp, addr);
+        code.and_(addr, PAGE_SIZE - 1);
+        code.shr(tmp, PAGE_BITS);
+        code.mov(page_table, qword[page_table + tmp * sizeof(void*)]);
+        code.xor_(tmp.cvt32(), tmp.cvt32());
+        code.mov(tmp.cvt32(), code.dword[page_table + addr]);
+        ctx.reg_alloc.DefineValue(inst, tmp);
+        return;
+    }
+
+
     DEVIRT(conf.callbacks, &A64::UserCallbacks::MemoryRead32).EmitCall(code, [&](Xbyak::Reg64 vaddr) {
         ASSERT(vaddr == code.ABI_PARAM2);
         auto args = ctx.reg_alloc.GetArgumentInfo(inst);
@@ -335,6 +387,22 @@ void A64EmitX64::EmitA64ReadMemory32(A64EmitContext& ctx, IR::Inst* inst) {
 }
 
 void A64EmitX64::EmitA64ReadMemory64(A64EmitContext& ctx, IR::Inst* inst) {
+    if (conf.page_table) {
+        auto args = ctx.reg_alloc.GetArgumentInfo(inst);
+        Xbyak::Reg64 addr = ctx.reg_alloc.UseScratchGpr(args[0]);
+        Xbyak::Reg64 tmp = ctx.reg_alloc.ScratchGpr();
+        Xbyak::Reg64 page_table = ctx.reg_alloc.ScratchGpr();
+        code.mov(page_table, reinterpret_cast<u64>(conf.page_table));
+        code.mov(tmp, addr);
+        code.and_(addr, PAGE_SIZE - 1);
+        code.shr(tmp, PAGE_BITS);
+        code.mov(page_table, qword[page_table + tmp * sizeof(void*)]);
+        code.xor_(tmp.cvt32(), tmp.cvt32());
+        code.mov(tmp.cvt64(), code.qword[page_table + addr]);
+        ctx.reg_alloc.DefineValue(inst, tmp);
+        return;
+    }
+
     DEVIRT(conf.callbacks, &A64::UserCallbacks::MemoryRead64).EmitCall(code, [&](Xbyak::Reg64 vaddr) {
         ASSERT(vaddr == code.ABI_PARAM2);
         auto args = ctx.reg_alloc.GetArgumentInfo(inst);
@@ -343,6 +411,22 @@ void A64EmitX64::EmitA64ReadMemory64(A64EmitContext& ctx, IR::Inst* inst) {
 }
 
 void A64EmitX64::EmitA64ReadMemory128(A64EmitContext& ctx, IR::Inst* inst) {
+    if (conf.page_table) {
+        auto args = ctx.reg_alloc.GetArgumentInfo(inst);
+        Xbyak::Reg64 addr = ctx.reg_alloc.UseScratchGpr(args[0]);
+        Xbyak::Reg64 tmp = ctx.reg_alloc.ScratchGpr();
+        Xbyak::Reg64 page_table = ctx.reg_alloc.ScratchGpr();
+        Xbyak::Xmm dest = ctx.reg_alloc.ScratchXmm();
+        code.mov(page_table, reinterpret_cast<u64>(conf.page_table));
+        code.mov(tmp, addr);
+        code.and_(addr, PAGE_SIZE - 1);
+        code.shr(tmp, PAGE_BITS);
+        code.mov(page_table, qword[page_table + tmp * sizeof(void*)]);
+        code.movups(dest, code.xword[page_table + addr]);
+        ctx.reg_alloc.DefineValue(inst, dest);
+        return;
+    }
+
 #ifdef _WIN32
     auto args = ctx.reg_alloc.GetArgumentInfo(inst);
 
@@ -381,6 +465,21 @@ void A64EmitX64::EmitA64ReadMemory128(A64EmitContext& ctx, IR::Inst* inst) {
 }
 
 void A64EmitX64::EmitA64WriteMemory8(A64EmitContext& ctx, IR::Inst* inst) {
+    if (conf.page_table) {
+        auto args = ctx.reg_alloc.GetArgumentInfo(inst);
+        Xbyak::Reg64 addr = ctx.reg_alloc.UseScratchGpr(args[0]);
+        Xbyak::Reg64 value = ctx.reg_alloc.UseGpr(args[1]);
+        Xbyak::Reg64 tmp = ctx.reg_alloc.ScratchGpr();
+        Xbyak::Reg64 page_table = ctx.reg_alloc.ScratchGpr();
+        code.mov(page_table, reinterpret_cast<u64>(conf.page_table));
+        code.mov(tmp, addr);
+        code.and_(addr, PAGE_SIZE - 1);
+        code.shr(tmp, PAGE_BITS);
+        code.mov(page_table, qword[page_table + tmp * sizeof(void*)]);
+        code.mov(code.byte[page_table + addr], value.cvt8());
+        return;
+    }
+
     DEVIRT(conf.callbacks, &A64::UserCallbacks::MemoryWrite8).EmitCall(code, [&](Xbyak::Reg64 vaddr, Xbyak::Reg64 value) {
         ASSERT(vaddr == code.ABI_PARAM2 && value == code.ABI_PARAM3);
         auto args = ctx.reg_alloc.GetArgumentInfo(inst);
@@ -389,6 +488,21 @@ void A64EmitX64::EmitA64WriteMemory8(A64EmitContext& ctx, IR::Inst* inst) {
 }
 
 void A64EmitX64::EmitA64WriteMemory16(A64EmitContext& ctx, IR::Inst* inst) {
+    if (conf.page_table) {
+        auto args = ctx.reg_alloc.GetArgumentInfo(inst);
+        Xbyak::Reg64 addr = ctx.reg_alloc.UseScratchGpr(args[0]);
+        Xbyak::Reg64 value = ctx.reg_alloc.UseGpr(args[1]);
+        Xbyak::Reg64 tmp = ctx.reg_alloc.ScratchGpr();
+        Xbyak::Reg64 page_table = ctx.reg_alloc.ScratchGpr();
+        code.mov(page_table, reinterpret_cast<u64>(conf.page_table));
+        code.mov(tmp, addr);
+        code.and_(addr, PAGE_SIZE - 1);
+        code.shr(tmp, PAGE_BITS);
+        code.mov(page_table, qword[page_table + tmp * sizeof(void*)]);
+        code.mov(code.word[page_table + addr], value.cvt16());
+        return;
+    }
+
     DEVIRT(conf.callbacks, &A64::UserCallbacks::MemoryWrite16).EmitCall(code, [&](Xbyak::Reg64 vaddr, Xbyak::Reg64 value) {
         ASSERT(vaddr == code.ABI_PARAM2 && value == code.ABI_PARAM3);
         auto args = ctx.reg_alloc.GetArgumentInfo(inst);
@@ -397,6 +511,21 @@ void A64EmitX64::EmitA64WriteMemory16(A64EmitContext& ctx, IR::Inst* inst) {
 }
 
 void A64EmitX64::EmitA64WriteMemory32(A64EmitContext& ctx, IR::Inst* inst) {
+    if (conf.page_table) {
+        auto args = ctx.reg_alloc.GetArgumentInfo(inst);
+        Xbyak::Reg64 addr = ctx.reg_alloc.UseScratchGpr(args[0]);
+        Xbyak::Reg64 value = ctx.reg_alloc.UseGpr(args[1]);
+        Xbyak::Reg64 tmp = ctx.reg_alloc.ScratchGpr();
+        Xbyak::Reg64 page_table = ctx.reg_alloc.ScratchGpr();
+        code.mov(page_table, reinterpret_cast<u64>(conf.page_table));
+        code.mov(tmp, addr);
+        code.and_(addr, PAGE_SIZE - 1);
+        code.shr(tmp, PAGE_BITS);
+        code.mov(page_table, qword[page_table + tmp * sizeof(void*)]);
+        code.mov(code.dword[page_table + addr], value.cvt32());
+        return;
+    }
+
     DEVIRT(conf.callbacks, &A64::UserCallbacks::MemoryWrite32).EmitCall(code, [&](Xbyak::Reg64 vaddr, Xbyak::Reg64 value) {
         ASSERT(vaddr == code.ABI_PARAM2 && value == code.ABI_PARAM3);
         auto args = ctx.reg_alloc.GetArgumentInfo(inst);
@@ -405,6 +534,35 @@ void A64EmitX64::EmitA64WriteMemory32(A64EmitContext& ctx, IR::Inst* inst) {
 }
 
 void A64EmitX64::EmitA64WriteMemory64(A64EmitContext& ctx, IR::Inst* inst) {
+    if (conf.page_table) {
+        auto args = ctx.reg_alloc.GetArgumentInfo(inst);
+        if (args[1].IsInXmm()) {
+            Xbyak::Reg64 addr = ctx.reg_alloc.UseScratchGpr(args[0]);
+            Xbyak::Xmm value = ctx.reg_alloc.UseXmm(args[1]);
+            Xbyak::Reg64 tmp = ctx.reg_alloc.ScratchGpr();
+            Xbyak::Reg64 page_table = ctx.reg_alloc.ScratchGpr();
+            code.mov(page_table, reinterpret_cast<u64>(conf.page_table));
+            code.mov(tmp, addr);
+            code.and_(addr, PAGE_SIZE - 1);
+            code.shr(tmp, PAGE_BITS);
+            code.mov(page_table, qword[page_table + tmp * sizeof(void*)]);
+            code.movq(code.qword[page_table + addr], value);
+        } else {
+            Xbyak::Reg64 addr = ctx.reg_alloc.UseScratchGpr(args[0]);
+            Xbyak::Reg64 value = ctx.reg_alloc.UseGpr(args[1]);
+            Xbyak::Reg64 tmp = ctx.reg_alloc.ScratchGpr();
+            Xbyak::Reg64 page_table = ctx.reg_alloc.ScratchGpr();
+            code.mov(page_table, reinterpret_cast<u64>(conf.page_table));
+            code.mov(tmp, addr);
+            code.and_(addr, PAGE_SIZE - 1);
+            code.shr(tmp, PAGE_BITS);
+            code.mov(page_table, qword[page_table + tmp * sizeof(void*)]);
+            code.mov(code.qword[page_table + addr], value.cvt64());
+        }
+
+        return;
+    }
+
     DEVIRT(conf.callbacks, &A64::UserCallbacks::MemoryWrite64).EmitCall(code, [&](Xbyak::Reg64 vaddr, Xbyak::Reg64 value) {
         ASSERT(vaddr == code.ABI_PARAM2 && value == code.ABI_PARAM3);
         auto args = ctx.reg_alloc.GetArgumentInfo(inst);
@@ -413,6 +571,21 @@ void A64EmitX64::EmitA64WriteMemory64(A64EmitContext& ctx, IR::Inst* inst) {
 }
 
 void A64EmitX64::EmitA64WriteMemory128(A64EmitContext& ctx, IR::Inst* inst) {
+    if (conf.page_table) {
+        auto args = ctx.reg_alloc.GetArgumentInfo(inst);
+        Xbyak::Reg64 addr = ctx.reg_alloc.UseScratchGpr(args[0]);
+        Xbyak::Xmm value = ctx.reg_alloc.UseXmm(args[1]);
+        Xbyak::Reg64 tmp = ctx.reg_alloc.ScratchGpr();
+        Xbyak::Reg64 page_table = ctx.reg_alloc.ScratchGpr();
+        code.mov(page_table, reinterpret_cast<u64>(conf.page_table));
+        code.mov(tmp, addr);
+        code.and_(addr, PAGE_SIZE - 1);
+        code.shr(tmp, PAGE_BITS);
+        code.mov(page_table, qword[page_table + tmp * sizeof(void*)]);
+        code.movups(code.xword[page_table + addr], value);
+        return;
+    }
+
 #ifdef _WIN32
     auto args = ctx.reg_alloc.GetArgumentInfo(inst);
 

@@ -1188,9 +1188,17 @@ void EmitX64::EmitZeroExtendHalfToLong(EmitContext& ctx, IR::Inst* inst) {
 
 void EmitX64::EmitZeroExtendWordToLong(EmitContext& ctx, IR::Inst* inst) {
     auto args = ctx.reg_alloc.GetArgumentInfo(inst);
-    Xbyak::Reg64 result = ctx.reg_alloc.UseScratchGpr(args[0]);
-    code.mov(result.cvt32(), result.cvt32()); // x64 zeros upper 32 bits on a 32-bit move
-    ctx.reg_alloc.DefineValue(inst, result);
+    if (false /*args[0].IsInXmm()*/) {
+        Xbyak::Xmm result = ctx.reg_alloc.ScratchXmm();
+        Xbyak::Xmm source = ctx.reg_alloc.UseXmm(args[0]);
+        code.pxor(result, result);
+        code.movss(result, source);
+        ctx.reg_alloc.DefineValue(inst, result);
+    } else {
+        Xbyak::Reg64 result = ctx.reg_alloc.UseScratchGpr(args[0]);
+        code.mov(result.cvt32(), result.cvt32()); // x64 zeros upper 32 bits on a 32-bit move
+        ctx.reg_alloc.DefineValue(inst, result);
+    }
 }
 
 void EmitX64::EmitZeroExtendLongToQuad(EmitContext& ctx, IR::Inst* inst) {

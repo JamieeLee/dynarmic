@@ -78,6 +78,9 @@ struct UserConfig {
     // Determines whether AddTicks and GetTicksRemaining are called.
     // If false, execution will continue until soon after Jit::HaltExecution is called.
     // bool enable_ticks = true; // TODO
+
+    void** page_table = nullptr;
+    size_t page_table_num_entries = 0;
 };
 
 } // namespace A64

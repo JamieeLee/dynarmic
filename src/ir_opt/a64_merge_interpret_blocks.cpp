@@ -44,6 +44,8 @@ void A64MergeInterpretBlocksPass(IR::Block& block, A64::UserCallbacks* cb) {
     A64::LocationDescriptor location{term->next};
     size_t num_instructions = 1;
 
+    printf("INTERPRET %08x\n", cb->MemoryReadCode(location.PC()));
+
     while (is_interpret_instruction(location.AdvancePC(static_cast<int>(num_instructions * 4)))) {
         num_instructions++;
     }
